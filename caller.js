@@ -63,7 +63,7 @@ const stopFarButton = document.querySelector('.stop-far');
 // for cross browser -- see https://codepen.io/Rumyra/pen/qyMzqN/
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtxDownlink = new AudioContext();
-let buffer = null;
+let buffer = null;  // Buffer for downloaded .wav file
 
 //add events to the buttons
 loadFarButton.addEventListener("click", loadFarFile);
@@ -138,6 +138,7 @@ function stopFarFile() {
 const recordButton = document.querySelector('.record');
 const stopButton = document.querySelector('.stop');
 const recordAndPlayButton = document.querySelector('.record_and_play');
+const streamAndPlayButton = document.querySelector('.stream_and_play');
 const soundClips = document.querySelector('.sound-clips');
 const canvas = document.querySelector('.visualizer');
 const mainSection = document.querySelector('.main-controls');
@@ -165,6 +166,7 @@ var audioContext //audio context to help us record
 recordButton.addEventListener("click", startRecording);
 stopButton.addEventListener("click", stopRecording);
 recordAndPlayButton.addEventListener("click", startRecordingAndPlay);
+streamAndPlayButton.addEventListener("click", startStreamingAndPlay);
 //pauseButton.addEventListener("click", pauseRecording);
 
 function startRecording() {
@@ -255,6 +257,39 @@ function startRecordingAndPlay() {
 	// Start playback 1 second after the current time so that we're confident that recording has started
 	// and reduces the chance that we miss the first portion of the far file
 	sourceFar.start(audioCtxDownlink.currentTime + 1.0);
+}
+
+function startStreamingAndPlay() {
+    console.log("startStreamingAndPlay() called");
+
+    if (!buffer) {
+        console.warn("No downloaded audio buffer available!");
+        return;
+    }
+
+    // 1️⃣ Start WebRTC Streaming (Mic + Played Audio)
+    startStreaming().then(() => {
+        console.log("Streaming started, now playing audio...");
+
+        // 2️⃣ Create an Audio Source from downloaded buffer
+        let source = audioCtxDownlink.createBufferSource();
+        source.buffer = buffer;
+
+        // 3️⃣ Capture the audio output for streaming
+        let renderDestination = audioCtxDownlink.createMediaStreamDestination();
+        source.connect(renderDestination);
+
+        // 4️⃣ Play the audio locally (on loudspeaker)
+        source.connect(audioCtxDownlink.destination);
+
+        // 5️⃣ Start playback after a short delay
+        source.start(audioCtxDownlink.currentTime + 1.0); // 1 sec delay ensures streaming starts first
+
+        // 6️⃣ Add Rendered Audio to WebRTC Streaming
+        renderDestination.stream.getAudioTracks().forEach(track => mixedStream.addTrack(track));
+    }).catch(error => {
+        console.error("Error starting streaming:", error);
+    });
 }
 
 function pauseRecording() {
