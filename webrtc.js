@@ -26,5 +26,12 @@ async function setAnswer() {
 // 📡 Start WebRTC & Add Stream
 function startWebRTC(stream) {
     stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-    createOffer();
+
+    // ✅ Only create an offer if there's no existing one
+    if (!peerConnection.localDescription) {
+        console.log("📡 Creating initial SDP offer...");
+        createOffer();
+    } else {
+        console.log("✅ WebRTC already established. Streaming media...");
+    }
 }
