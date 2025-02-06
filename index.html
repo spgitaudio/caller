@@ -26,6 +26,18 @@
                 <button class="stop-far">Stop</button>
                 <div id="loaded_file">Loaded: press load to get file</div>
             </div>
+            <p>play back Far audio using:</p>
+            <div>
+                <audio id="farAudioFile" title="farAudioFile" >
+                    <!--
+                      <source src="fb_fc.wav" type="audio/wav" />
+                      This browser does not support the audio element.
+                    -->
+                </audio>
+                <div class="outputSelector">
+                    <select></select>
+                </div>
+            </div>
 
             <h2>Near Side</h2>
             <canvas class="visualizer" height="60px"></canvas>
@@ -41,6 +53,33 @@
             <ol id="recordingsList"></ol>
         </section>
 
+        <div>
+            <h2>Local media files:</h2>
+            <div>
+                <div>
+                    <select id="near-filename-dropdown" name="near-filename-dropdown">
+                    </select>
+                </div>
+                <div id="near-buttons">
+                    <button class="load-near">Load</button>
+                    <button class="play-near">Play</button>
+                    <button class="stop-near">Stop</button>
+                    <div id="loaded_file_near">Loaded: press load to get file</div>
+
+                    <p>play back Near audio using:</p>
+                    <div>
+                        <audio id="nearAudioFile" title="nearAudioFile">
+                        </audio>
+                        <div class="outputSelector">
+                            <select></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <label for="toggle">❔</label>
+        <input type="checkbox" id="toggle">
+
         <h2>WebRTC Connection</h2>
         <button onclick="createOffer()">Create Offer</button>
         <textarea id="offer" placeholder="SDP Offer"></textarea>
@@ -49,6 +88,7 @@
         <h2>Paste Receiver's Answer</h2>
         <textarea id="answer"></textarea>
         <button onclick="setAnswer()">Set Answer</button>
+
 
     </div>
 
