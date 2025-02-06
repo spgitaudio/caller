@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC Caller</title>
+</head>
+<body>
+    <h2>Caller (Send Offer)</h2>
+    <button onclick="createOffer()">Create Offer</button>
+    <textarea id="offer" placeholder="SDP Offer will appear here"></textarea>
+    <button onclick="copyOffer()">Copy Offer</button>
+    <br><br>
+    <h2>Paste Receiver's Answer</h2>
+    <textarea id="answer"></textarea>
+    <button onclick="setAnswer()">Set Answer</button>
+
+    <script>
+        let peerConnection = new RTCPeerConnection({ iceServers: [] });
+
+        peerConnection.onicecandidate = event => {
+            if (event.candidate) {
+                console.log("📡 ICE Candidate:", event.candidate.candidate);
+            }
+        };
+
+        async function createOffer() {
+            let offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            document.getElementById("offer").value = JSON.stringify(offer);
+        }
+
+        function copyOffer() {
+            navigator.clipboard.writeText(document.getElementById("offer").value);
+        }
+
+        async function setAnswer() {
+            let answer = JSON.parse(document.getElementById("answer").value);
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            console.log("✅ Answer Set!");
+        }
+    </script>
+</body>
+</html>
