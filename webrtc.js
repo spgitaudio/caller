@@ -21,12 +21,23 @@ peerConnection.onnegotiationneeded = async () => {
     console.log("🔄 Negotiation needed. Updating SDP...");
 };
 
+// 📡 Modify SDP to Force Opus & Dual Mono
+function forceOpusSDP(sdp) {
+    console.log("🔧 Modifying SDP for Opus and Dual Mono...");
+    return sdp
+        .replace(/a=rtpmap:\d+ opus\/\d+/g, "a=rtpmap:111 opus/48000/2") // Force Opus codec
+        .replace(/a=fmtp:\d+ /g, "a=fmtp:111 stereo=1; sprop-stereo=1; ") // Force stereo Opus
+        .replace(/a=sendrecv/g, "a=sendonly"); // Caller only sends media
+}
+
 // 📡 Creates SDP Offer when "Create Offer" Button is Clicked
+// 📡 Caller: Create SDP Offer with Opus
 async function createOffer() {
     let offer = await peerConnection.createOffer();
+    offer.sdp = forceOpusSDP(offer.sdp); // Modify SDP before setting
     await peerConnection.setLocalDescription(offer);
     document.getElementById("offer").value = JSON.stringify(offer);
-    console.log("📡 SDP Offer Created:", JSON.stringify(offer));
+    console.log("📡 SDP Offer Created with Opus:", JSON.stringify(offer));
 }
 
 // 📥 Accepts Receiver's Answer (Pasted from Receiver)
