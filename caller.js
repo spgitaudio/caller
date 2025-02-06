@@ -138,7 +138,6 @@ function stopFarFile() {
 const recordButton = document.querySelector('.record');
 const stopButton = document.querySelector('.stop');
 const recordAndPlayButton = document.querySelector('.record_and_play');
-const streamAndPlayButton = document.querySelector('.stream-and-play');
 const soundClips = document.querySelector('.sound-clips');
 const canvas = document.querySelector('.visualizer');
 const mainSection = document.querySelector('.main-controls');
@@ -154,7 +153,7 @@ var gumStream; 						//stream from getUserMedia()
 var rec; 							//Recorder.js object
 var input; 							//MediaStreamAudioSourceNode we'll be recording
 
-// shim for AudioContext when it's not avb. 
+// shim for AudioContext when it's not avb.
 //var AudioContext = window.AudioContext || window.webkitAudioContext;
 var audioContext //audio context to help us record
 
@@ -166,7 +165,6 @@ var audioContext //audio context to help us record
 recordButton.addEventListener("click", startRecording);
 stopButton.addEventListener("click", stopRecording);
 recordAndPlayButton.addEventListener("click", startRecordingAndPlay);
-streamAndPlayButton.addEventListener("click", startStreamingAndPlay);
 //pauseButton.addEventListener("click", pauseRecording);
 
 function startRecording() {
@@ -191,7 +189,7 @@ function startRecording() {
 	}
 
 	/*
-	  Disable the record button until we get a success or fail from getUserMedia() 
+	  Disable the record button until we get a success or fail from getUserMedia()
 	*/
 
 	recordButton.disabled = true;
@@ -199,7 +197,7 @@ function startRecording() {
 	//pauseButton.disabled = false
 
 	/*
-		We're using the standard promise based getUserMedia() 
+		We're using the standard promise based getUserMedia()
 		https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
 	*/
 
@@ -214,7 +212,7 @@ function startRecording() {
 		*/
 		audioContext = new AudioContext();
 
-		//update the format 
+		//update the format
 		document.getElementById("formats").innerHTML = "Format: 1 channel pcm @ " + audioContext.sampleRate / 1000 + "kHz"
 
 		/*  assign to gumStream for later use  */
@@ -223,7 +221,7 @@ function startRecording() {
 		/* use the stream */
 		input = audioContext.createMediaStreamSource(stream);
 
-		/* 
+		/*
 			Create the Recorder object and configure to record mono sound (1 channel)
 			Recording 2 channels  will double the file size
 		*/
@@ -257,32 +255,6 @@ function startRecordingAndPlay() {
 	// Start playback 1 second after the current time so that we're confident that recording has started
 	// and reduces the chance that we miss the first portion of the far file
 	sourceFar.start(audioCtxDownlink.currentTime + 1.0);
-}
-
-async function startStreamingAndPlay() {
-    console.log("📡 Streaming & Playing...");
-
-    // 1️⃣ Get Mic Access
-    let micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    let micSource = audioContext.createMediaStreamSource(micStream);
-
-    // 2️⃣ Merge Mic + Rendered Audio into One Stream
-    let merger = audioContext.createChannelMerger(2);
-
-    let source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(merger, 0, 0); // Left = Render
-    micSource.connect(merger, 0, 1); // Right = Mic
-
-    let mixedStream = audioContext.createMediaStreamDestination();
-    merger.connect(mixedStream);
-
-    // 3️⃣ Start Playing Audio
-    source.connect(audioContext.destination);
-    source.start(audioContext.currentTime + 1.0); // 1-sec delay to ensure streaming starts first
-
-    // 4️⃣ Start WebRTC Streaming
-    startWebRTC(mixedStream.stream);
 }
 
 function pauseRecording() {
@@ -386,6 +358,124 @@ function createDownloadLink(blob) {
     evtTgt.parentNode.parentNode.removeChild(evtTgt.parentNode);
     }
 }
+
+//////////////////////////////////////////////////////////////////////////
+// set up for local playback (fetch/load wav file from webserver, play locally over 2nd device output (if available) to simulate a local talker)
+
+let dropdownNear = document.getElementById('near-filename-dropdown');
+dropdownNear.length = 0;
+
+let defaultNearOption = document.createElement('option');
+defaultNearOption.text = 'Choose a wav';
+
+dropdownNear.add(defaultNearOption);
+dropdownNear.selectedIndex = 0;
+
+// filename (on the server) that lists all the available wav files to be downloaded and played on the laptop/desktop/cellphone
+//const url = 'list_of_wav_filenames.json';
+
+// use fetch to retrieve the list of wav filenames and then populate the dropdown list
+// report any errors that occur in the fetch operation
+//
+fetch(url)
+	.then(
+		function (response) {
+			if (response.status !== 200) {
+				console.warn('Looks like there was a problem. Status Code: ' + response.status);
+				return;
+			}
+
+			// Examine the text in the response and populate the dropdown with the filenames
+			response.json().then(function (data) {
+				let option;
+
+				for (let i = 0; i < data.length; i++) {
+					option = document.createElement('option');
+					option.text = data[i].name;
+					option.value = data[i].name;
+					dropdownNear.add(option);
+				}
+			});
+		}
+	)
+	.catch(function (err) {
+		console.error('Fetch Error -', err);
+	});
+
+
+const loadNearButton = document.querySelector('.load-near');
+const playNearButton = document.querySelector('.play-near');
+const stopNearButton = document.querySelector('.stop-near');
+const audioCtxNear = new AudioContext();
+let bufferNear = null;
+
+//add events to the buttons
+loadNearButton.addEventListener("click", loadNearFile);
+playNearButton.addEventListener("click", playNearFile);
+stopNearButton.addEventListener("click", stopNearFile);
+
+let nearFilename = ''
+
+/*
+  Disable the play and stopfar buttons until we successfully fetch the selected file
+*/
+loadNearButton.disabled = false;
+playNearButton.disabled = true;
+stopNearButton.disabled = true;
+
+function loadNearFile() {
+	console.log("loadNearButton clicked");
+	nearFilename = dropdownNear.options[dropdownNear.selectedIndex].value;
+	console.log("selected " + nearFilename);
+
+	fetch(nearFilename)
+		.then(function (response) {
+			if (response.status !== 200) {
+				console.warn('loadNearFile has a problem. Status Code: ' + response.status);
+				console.warn('loadNearFile could not load ', nearFilename);
+				return;
+			}
+			return response.arrayBuffer()
+		}).
+		then(function (arrayBuffer) {
+			if (arrayBuffer) {
+				let undecodedAudio = arrayBuffer;
+				audioCtxNear.decodeAudioData(undecodedAudio, (data) => bufferNear = data);
+
+				// update the displayed loaded file
+				document.getElementById("loaded_file_near").innerHTML = "Loaded: " + nearFilename
+
+				// enable the buttons now that we have successfully downloaded a file
+				playNearButton.disabled = false;
+				stopNearButton.disabled = false;
+			}
+		})
+		.catch(function (err) {
+			console.error('loadNearFile Error - ', err);
+		});
+}
+
+var sourceNear = null;
+const playNearAudio = document.getElementById('nearAudioFile');
+var destNear = audioCtxNear.createMediaStreamDestination();
+
+function playNearFile() {
+	console.log("playNearButton clicked");
+	sourceNear = audioCtxNear.createBufferSource();
+	sourceNear.buffer = bufferNear;
+	//sourceFar.connect(audioCtxDownlink.destination);
+	sourceNear.connect(destNear);
+	sourceNear.start();
+	playNearAudio.srcObject = destNear.stream;
+	playNearAudio.play();
+}
+
+
+function stopNearFile() {
+	console.log("stopNearButton clicked");
+	sourceNear.stop();
+}
+
 
 
 //////////////////////////////////////////////////////////////////////////
