@@ -294,7 +294,7 @@ function startMicCapture() {
 	*/
 
 	navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
-		console.log("getUserMedia() success, stream created, initializing Recorder.js ...");
+		console.log("getUserMedia() success, stream created, capture starting ...");
 
 		/*
 			create an audio context after getUserMedia is called
@@ -312,6 +312,7 @@ function startMicCapture() {
 
 		/* use the stream */
 		input = audioContext.createMediaStreamSource(stream);
+		visualize(stream);
 
 		/*
 			Create the Recorder object and configure to record mono sound (1 channel)
@@ -326,7 +327,7 @@ function startMicCapture() {
 		rec.record()
 
         */
-		console.log("Recording started");
+		console.log("capture started");
 
 	}).catch(function (err) {
 		//enable the record button if getUserMedia() fails
