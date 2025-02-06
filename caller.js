@@ -259,37 +259,31 @@ function startRecordingAndPlay() {
 	sourceFar.start(audioCtxDownlink.currentTime + 1.0);
 }
 
-function startStreamingAndPlay() {
-    console.log("startStreamingAndPlay() called");
+// 📡 Stream & Play (New Function)
+async function startStreamingAndPlay() {
+    console.log("📡 Streaming & Playing...");
 
-    if (!buffer) {
-        console.warn("No downloaded audio buffer available!");
-        return;
-    }
+    // 1️⃣ Get Mic Access
+    let micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let micSource = audioContext.createMediaStreamSource(micStream);
 
-    // 1️⃣ Start WebRTC Streaming (Mic + Played Audio)
-    startStreaming().then(() => {
-        console.log("Streaming started, now playing audio...");
+    // 2️⃣ Merge Mic + Rendered Audio into One Stream
+    let merger = audioContext.createChannelMerger(2);
 
-        // 2️⃣ Create an Audio Source from downloaded buffer
-        let source = audioCtxDownlink.createBufferSource();
-        source.buffer = buffer;
+    let source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(merger, 0, 0); // Left = Render
+    micSource.connect(merger, 0, 1); // Right = Mic
 
-        // 3️⃣ Capture the audio output for streaming
-        let renderDestination = audioCtxDownlink.createMediaStreamDestination();
-        source.connect(renderDestination);
+    let mixedStream = audioContext.createMediaStreamDestination();
+    merger.connect(mixedStream);
 
-        // 4️⃣ Play the audio locally (on loudspeaker)
-        source.connect(audioCtxDownlink.destination);
+    // 3️⃣ Start Playing Audio
+    source.connect(audioContext.destination);
+    source.start(audioContext.currentTime + 1.0); // 1-sec delay to ensure streaming starts first
 
-        // 5️⃣ Start playback after a short delay
-        source.start(audioCtxDownlink.currentTime + 1.0); // 1 sec delay ensures streaming starts first
-
-        // 6️⃣ Add Rendered Audio to WebRTC Streaming
-        renderDestination.stream.getAudioTracks().forEach(track => mixedStream.addTrack(track));
-    }).catch(error => {
-        console.error("Error starting streaming:", error);
-    });
+    // 4️⃣ Start WebRTC Streaming
+    startWebRTC(mixedStream.stream);
 }
 
 function pauseRecording() {
