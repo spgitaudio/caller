@@ -1,45 +1,58 @@
 <!DOCTYPE html>
 <html lang="en-us">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width">
-    <title>SMPL HearSay</title>
-    <link href="app.css" rel="stylesheet" type="text/css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>SMPL HearSay</title>
+  <link href="app.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 
     <div class="wrapper">
+
         <header>
             <h1>SMPL HearSay</h1>
         </header>
 
         <section class="main-controls">
             <header>
-                <h2>Far Side</h2>
+                <h2>Far side</h2>
             </header>
             <div>
-                <select id="far-filename-dropdown" name="far-filename-dropdown"></select>
+                <select id="far-filename-dropdown" name="far-filename-dropdown">
+                </select>
             </div>
             <div id="downlink-buttons">
                 <button class="load">Load</button>
                 <button class="play">Play</button>
                 <button class="stop-far">Stop</button>
                 <div id="loaded_file">Loaded: press load to get file</div>
-            </div>
-            <p>play back Far audio using:</p>
-            <div>
-                <audio id="farAudioFile" title="farAudioFile" >
-                    <!--
-                      <source src="fb_fc.wav" type="audio/wav" />
-                      This browser does not support the audio element.
-                    -->
-                </audio>
-                <div class="outputSelector">
-                    <select></select>
+
+                <!--
+                <div>
+                    <div class="outputSelector">
+                        <select></select>
+                    </div>
                 </div>
+                -->
+                <p>play back Far audio using:</p>
+                <div>
+                    <audio id="farAudioFile" title="farAudioFile" >
+                        <!--
+                        <source src="fb_fc.wav" type="audio/wav" />
+                        This browser does not support the audio element.
+                        -->
+                    </audio>
+                    <div class="outputSelector">
+                        <select></select>
+                    </div>
+                </div>
+
             </div>
 
-            <h2>Near Side</h2>
+            <header>
+                <h2>Near side</h2>
+            </header>
             <canvas class="visualizer" height="60px"></canvas>
             <div id="buttons">
                 <button class="record">Record</button>
@@ -49,6 +62,7 @@
         </section>
 
         <section class="sound-clips">
+            <div id="formats">Format: start recording to see sample rate</div>
             <p><strong>Recordings:</strong></p>
             <ol id="recordingsList"></ol>
         </section>
@@ -77,20 +91,31 @@
                 </div>
             </div>
         </div>
-        <label for="toggle">❔</label>
-        <input type="checkbox" id="toggle">
-
-        <h2>WebRTC Connection</h2>
-        <button onclick="createOffer()">Create Offer</button>
-        <textarea id="offer" placeholder="SDP Offer"></textarea>
-        <button onclick="copyOffer()">Copy Offer</button>
-
-        <h2>Paste Receiver's Answer</h2>
-        <textarea id="answer"></textarea>
-        <button onclick="setAnswer()">Set Answer</button>
-
 
     </div>
+
+    <h2>WebRTC Connection</h2>
+    <button onclick="createOffer()">Create Offer</button>
+    <textarea id="offer" placeholder="SDP Offer"></textarea>
+    <button onclick="copyOffer()">Copy Offer</button>
+
+    <h2>Paste Receiver's Answer</h2>
+    <textarea id="answer"></textarea>
+    <button onclick="setAnswer()">Set Answer</button>
+
+    <label for="toggle">❔</label>
+    <input type="checkbox" id="toggle">
+    <aside>
+        <h2>Information</h2>
+
+        <p>SMPL HearSay can record the microphone while playing a simulated farend talker over the loudspeaker </p>
+        <p>The recordings can be saved locally and then "shared" (eg by emailing the saved .wav file)</p>
+        <p>Currently the recordings cannot be uploaded to a server (yet...)</p>
+        <p>Some devices such as desktops and laptops have 2 or more output devices (eg built-in loudspeakers AND headphone outputs) </p>
+        <p>On these multi-output devices, a simulated local talker can also be played (eg by connecting the headphone output to a separate external loudspeaker or artificial mouth)</p>
+        <p>Unfortunately, even though many cellphones have built-in loudspeakers and headphone outputs, they typically have only a single D/A converter and cannot play different files over separate outputs</p>
+
+    </aside>
 
     <script src="recorder.js"></script>
     <script src="webrtc.js"></script>
