@@ -346,20 +346,32 @@ async function startStreamingAndPlay() {
     //let micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     let micSource = audioContext.createMediaStreamSource(gumStream);
 
-    // 2️⃣ Merge Mic + Rendered Audio into One Stream
+    // 2️⃣ Create a Stereo Merger (Left = Render, Right = Mic)
     let merger = audioContext.createChannelMerger(2);
 
+    // 3️⃣ Load & Decode Rendered Audio (e.g., downloaded `.wav` file)
     let source = audioContext.createBufferSource();
     source.buffer = buffer;
+
+    // 4️⃣ Route the Rendered Audio to the Left Channel
     source.connect(merger, 0, 0); // Left = Render
+
+    // 5️⃣ Route the Mic Audio to the Right Channel
     micSource.connect(merger, 0, 1); // Right = Mic
 
+    // 6️⃣ Create a New MediaStream with the Merged Audio
     let mixedStream = audioContext.createMediaStreamDestination();
     merger.connect(mixedStream);
 
-    // 3️⃣ Start Playing Audio
+    console.log("🎧 Mixed Stream Channels:", mixedStream.stream.getAudioTracks()[0].getSettings().channelCount);
+
+    // 7️⃣ Play the Rendered Audio Locally
     source.connect(audioContext.destination);
     source.start(audioContext.currentTime + 1.0); // 1-sec delay to ensure streaming starts first
+
+    // Sends mixedStream to WebRTC
+    console.log("📡 Adding tracks to WebRTC...");
+    mixedStream.stream.getTracks().forEach(track => peerConnection.addTrack(track, mixedStream.stream));
 
     // 4️⃣ Start WebRTC Streaming
     console.log("📡 Sending WebRTC stream...");
