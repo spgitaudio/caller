@@ -369,9 +369,9 @@ async function startStreamingAndPlay() {
     source.connect(audioContext.destination);
     source.start(audioContext.currentTime + 1.0); // 1-sec delay to ensure streaming starts first
 
-    // Sends mixedStream to WebRTC
-    console.log("📡 Adding tracks to WebRTC...");
-    mixedStream.stream.getTracks().forEach(track => peerConnection.addTrack(track, mixedStream.stream));
+    // Sends mixedStream to WebRTC --- actually this is handled in startWebRTC, so don't do it here
+    // console.log("📡 Adding tracks to WebRTC...");
+    //mixedStream.stream.getTracks().forEach(track => peerConnection.addTrack(track, mixedStream.stream));
 
     // 4️⃣ Start WebRTC Streaming
     console.log("📡 Sending WebRTC stream...");

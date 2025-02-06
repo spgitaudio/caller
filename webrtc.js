@@ -51,6 +51,8 @@ async function setAnswer() {
 function startWebRTC(stream) {
     stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
 
+    console.log("startWebRTC Channels:", stream.getAudioTracks()[0].getSettings().channelCount);
+
     // ✅ Only create an offer if there's no existing one
     if (!peerConnection.localDescription) {
         console.log("📡 Creating initial SDP offer...");
