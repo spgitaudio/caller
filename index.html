@@ -1,43 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-us">
 <head>
-    <meta charset="UTF-8">
-    <title>WebRTC Caller</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>SMPL HearSay</title>
+    <link href="app.css" rel="stylesheet" type="text/css">
 </head>
 <body>
-    <h2>Caller (Send Offer)</h2>
-    <button onclick="createOffer()">Create Offer</button>
-    <textarea id="offer" placeholder="SDP Offer will appear here"></textarea>
-    <button onclick="copyOffer()">Copy Offer</button>
-    <br><br>
-    <h2>Paste Receiver's Answer</h2>
-    <textarea id="answer"></textarea>
-    <button onclick="setAnswer()">Set Answer</button>
 
-    <script>
-        let peerConnection = new RTCPeerConnection({ iceServers: [] });
+    <div class="wrapper">
+        <header>
+            <h1>SMPL HearSay</h1>
+        </header>
 
-        peerConnection.onicecandidate = event => {
-            if (event.candidate) {
-                console.log("📡 ICE Candidate:", event.candidate.candidate);
-            }
-        };
+        <section class="main-controls">
+            <header>
+                <h2>Far Side</h2>
+            </header>
+            <div>
+                <select id="far-filename-dropdown" name="far-filename-dropdown"></select>
+            </div>
+            <div id="downlink-buttons">
+                <button class="load">Load</button>
+                <button class="play">Play</button>
+                <button class="stop-far">Stop</button>
+                <button class="stream-and-play">Stream & Play</button> <!-- New button -->
+                <div id="loaded_file">Loaded: press load to get file</div>
+            </div>
 
-        async function createOffer() {
-            let offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            document.getElementById("offer").value = JSON.stringify(offer);
-        }
+            <h2>Near Side</h2>
+            <canvas class="visualizer" height="60px"></canvas>
+            <div id="buttons">
+                <button class="record">Record</button>
+                <button class="stop">Stop</button>
+                <button class="record_and_play">Record + Play</button>
+            </div>
+        </section>
 
-        function copyOffer() {
-            navigator.clipboard.writeText(document.getElementById("offer").value);
-        }
+        <section class="sound-clips">
+            <p><strong>Recordings:</strong></p>
+            <ol id="recordingsList"></ol>
+        </section>
 
-        async function setAnswer() {
-            let answer = JSON.parse(document.getElementById("answer").value);
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            console.log("✅ Answer Set!");
-        }
-    </script>
+        <h2>WebRTC Connection</h2>
+        <button onclick="createOffer()">Create Offer</button>
+        <textarea id="offer" placeholder="SDP Offer"></textarea>
+        <button onclick="copyOffer()">Copy Offer</button>
+
+        <h2>Paste Receiver's Answer</h2>
+        <textarea id="answer"></textarea>
+        <button onclick="setAnswer()">Set Answer</button>
+
+    </div>
+
+    <script src="recorder.js"></script>
+    <script src="webrtc.js"></script>
+    <script src="caller.js"></script>
+
 </body>
 </html>
