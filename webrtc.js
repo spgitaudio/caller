@@ -8,6 +8,19 @@ peerConnection.onicecandidate = event => {
     }
 };
 
+// 🎧 Detect when Streaming Starts
+peerConnection.oniceconnectionstatechange = () => {
+    console.log("🔄 ICE Connection State:", peerConnection.iceConnectionState);
+    if (peerConnection.iceConnectionState === "connected") {
+        console.log("✅ Streaming has started! WebRTC connection established.");
+    }
+};
+
+// 🎙 Detect when Stream is Successfully Sent
+peerConnection.onnegotiationneeded = async () => {
+    console.log("🔄 Negotiation needed. Updating SDP...");
+};
+
 // 📡 Creates SDP Offer when "Create Offer" Button is Clicked
 async function createOffer() {
     let offer = await peerConnection.createOffer();

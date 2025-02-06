@@ -339,7 +339,7 @@ function startMicCapture() {
 
 // 📡 Stream & Play (New Function)
 async function startStreamingAndPlay() {
-    console.log("📡 Streaming & Playing...");
+    console.log("📡 Attempting to start streaming & playing...");
 
     // 1️⃣ Get Mic Access
     startMicCapture();
@@ -362,6 +362,7 @@ async function startStreamingAndPlay() {
     source.start(audioContext.currentTime + 1.0); // 1-sec delay to ensure streaming starts first
 
     // 4️⃣ Start WebRTC Streaming
+    console.log("📡 Sending WebRTC stream...");
     startWebRTC(mixedStream.stream);
 }
 
