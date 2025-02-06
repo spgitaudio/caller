@@ -376,6 +376,13 @@ async function startStreamingAndPlay() {
     // 4️⃣ Start WebRTC Streaming
     console.log("📡 Sending WebRTC stream...");
     startWebRTC(mixedStream.stream);
+
+    // sanity / debug, save the stereo stream to .wav file
+    console.log("Sanity debug save capture stream to wav file..");
+    rec = new Recorder(mixedStream, { numChannels: 2 })
+
+    //start the recording process
+    rec.record()
 }
 
 function pauseRecording() {
