@@ -145,3 +145,19 @@ function checkConnectionStatus() {
         console.log("📡 ❌ No active audio stream detected from Client.");
     }
 }
+
+async function checkClientStats() {
+    if (!peerConnection) return;
+
+    let stats = await peerConnection.getStats();
+    stats.forEach(report => {
+        if (report.type === "outbound-rtp" && report.kind === "audio") {
+            console.log(`📡 Client Sending Audio - Packets Sent: ${report.packetsSent}, Bitrate: ${report.bytesSent}`);
+        }
+    });
+
+    setTimeout(checkClientStats, 5000); // Check every 5 seconds
+}
+
+// ✅ Start checking client WebRTC statistics
+setTimeout(checkClientStats, 5000);
