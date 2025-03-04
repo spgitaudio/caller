@@ -65,9 +65,10 @@ async function createOffer() {
     let mixedStream = audioContext.createMediaStreamDestination();
     merger.connect(mixedStream);
 
-    // 🎧 5️⃣ Play TTS Audio Locally
-    ttsBufferSource.connect(audioContext.destination);
-    ttsBufferSource.start(audioContext.currentTime + 1.0); // Delay to ensure mic capture starts first
+    // 🎧 5️⃣ Do NOT automatically start playing TTS Audio Locally
+    // ttsBufferSource.connect(audioContext.destination);
+    // ttsBufferSource.start(audioContext.currentTime + 1.0); // Delay to ensure mic capture starts first
+    console.log("🎧 Prepared stereo stream but NOT playing audio yet.");
 
     // 📡 6️⃣ Add the Stereo Stream to WebRTC
     mixedStream.stream.getTracks().forEach(track => peerConnection.addTrack(track, mixedStream.stream));
