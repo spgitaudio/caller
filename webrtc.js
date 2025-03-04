@@ -156,11 +156,10 @@ async function checkClientStats() {
         }
     });
 
-    for (const stat of stats.values()) {
-      Object.keys(stat).forEach((statName) => {
-        console.log(`${statName}: ${report[statName]}`);
-      });
-    }
+    stats.forEach(report => {
+        console.log(`report.type: ${report.type}`);
+        console.log(`report.kind: ${report.kind}`);
+    });
 
     setTimeout(checkClientStats, 5000); // Check every 5 seconds
 }
