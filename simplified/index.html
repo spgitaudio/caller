@@ -95,9 +95,12 @@
         // Initialize WebRTC Peer Connection
         function initPeerConnection() {
             const configuration = {
-                iceServers: [],  // No STUN/TURN servers for local connection
-                sdpSemantics: 'unified-plan'
+              iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' }
+              ],
+              sdpSemantics: 'unified-plan'
             };
+
             peerConnection = new RTCPeerConnection(configuration);
 
             // Detailed connection state tracking
