@@ -74,6 +74,9 @@ async function createOffer() {
     // 📡 6️⃣ Add the Stereo Stream to WebRTC
     mixedStream.stream.getTracks().forEach(track => peerConnection.addTrack(track, mixedStream.stream));
 
+    // sanity check: Before creating an offer, ensure that the track is added to the connection
+    checkClientTracks();
+
     // 📡 7️⃣ Create & Modify SDP Offer
     let offer = await peerConnection.createOffer();
     offer.sdp = forceOpusSDP(offer.sdp); // Ensure Opus codec + stereo settings
@@ -82,6 +85,9 @@ async function createOffer() {
     // 📋 8️⃣ Display Offer for Manual Copy-Paste
     document.getElementById("offer").value = JSON.stringify(offer);
     console.log("📡 SDP Offer Created and streaming started:", JSON.stringify(offer));
+
+    // Sanity check: run checkClientTracks after "Create Offer" to ensure that the track is added to the connection.
+    setTimeout(checkClientTracks, 3000);
 }
 
 // 📥 Accepts Receiver's Answer (Pasted from Receiver)
@@ -103,6 +109,7 @@ function startWebRTC(stream) {
         createOffer();
     } else {
         console.log("✅ WebRTC already established. Streaming media...");
+        ensureTrackIsUnmuted();
     }
 }
 
@@ -167,8 +174,7 @@ async function checkClientTracks() {
     }
 }
 
-// ✅ Run this check after "Create Offer"
-setTimeout(checkClientTracks, 3000);
+
 
 //Check If WebRTC Is Muting the Track
 //Modify the code to manually unmute the track before streaming.
