@@ -104,3 +104,15 @@ function startWebRTC(stream) {
         console.log("✅ WebRTC already established. Streaming media...");
     }
 }
+
+function checkConnectionStatus() {
+    if (!peerConnection) {
+        console.log("❌ WebRTC connection is not initialized.");
+        return;
+    }
+
+    console.log("🔄 Checking WebRTC Connection Status...");
+    console.log("🔄 ICE Connection State:", peerConnection.iceConnectionState);
+    console.log("🔄 Signaling State:", peerConnection.signalingState);
+    console.log("🔄 Connection State:", peerConnection.connectionState);
+}
