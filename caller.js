@@ -337,6 +337,9 @@ function startMicCapture() {
 	});
 }
 
+let localMediaRecorder;
+let localRecordedChunks = [];
+
 // 📡 Stream & Play (New Function)
 async function startStreamingAndPlay() {
     console.log("📡 Attempting to start streaming & playing...");
@@ -378,11 +381,72 @@ async function startStreamingAndPlay() {
     startWebRTC(mixedStream.stream);
 
     // sanity / debug, save the stereo stream to .wav file
-    console.log("Sanity debug save capture stream to wav file..");
-    rec = new Recorder(mixedStream, { numChannels: 2 })
+    // ✅ 7️⃣ Start Local Recording
+    startLocalRecording(mixedStream.stream);
+}
 
-    //start the recording process
-    rec.record()
+// ✅ Function to Start Local Recording
+function startLocalRecording(stream) {
+    console.log("🎙 Starting local recording...");
+
+    localRecordedChunks = [];
+    localMediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+    localMediaRecorder.ondataavailable = event => {
+        if (event.data.size > 0) {
+            localRecordedChunks.push(event.data);
+            console.log(`🎧 Recorded local data chunk: ${event.data.size} bytes`);
+        }
+    };
+
+    localMediaRecorder.onstop = saveLocalRecording;
+    localMediaRecorder.start();
+}
+
+// ✅ Function to Stop Local Recording and Save to File
+function stopLocalRecording() {
+    if (localMediaRecorder && localMediaRecorder.state === "recording") {
+        console.log("🛑 Stopping local recording...");
+        localMediaRecorder.stop();
+    }
+}
+
+// ✅ Convert and Save Local Recording
+function saveLocalRecording() {
+    if (localRecordedChunks.length === 0) {
+        console.warn("⚠ No recorded data available!");
+        return;
+    }
+
+    console.log("💾 Saving local stereo WebRTC recording...");
+    const blob = new Blob(localRecordedChunks, { type: "audio/webm" });
+
+    let fileReader = new FileReader();
+    fileReader.readAsArrayBuffer(blob);
+
+    fileReader.onloadend = () => {
+        let audioContext = new AudioContext();
+        audioContext.decodeAudioData(fileReader.result)
+            .then(buffer => {
+                let wavBuffer = encodeWav(buffer);
+                let wavBlob = new Blob([wavBuffer], { type: "audio/wav" });
+
+                // ✅ Create a Download Link
+                const url = URL.createObjectURL(wavBlob);
+                const downloadLink = document.createElement("a");
+                downloadLink.href = url;
+                downloadLink.download = "client_stereo_recording.wav";
+                downloadLink.textContent = "Download Local Recording";
+
+                // ✅ Add Download Link to Page
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+
+                console.log("✅ Local recording saved successfully!");
+            })
+            .catch(error => console.error("❌ Error decoding WebM audio:", error));
+    };
 }
 
 function pauseRecording() {
