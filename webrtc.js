@@ -39,6 +39,15 @@ window.addEventListener("storage", (event) => {
     }
 });
 
+// 📡 Modify SDP to Force Opus & Dual Mono
+function forceOpusSDP(sdp) {
+    console.log("🔧 Modifying SDP for Opus and Dual Mono...");
+    return sdp
+        .replace(/a=rtpmap:\d+ opus\/\d+/g, "a=rtpmap:111 opus/48000") // Force Opus codec
+        .replace(/a=fmtp:\d+ /g, "a=fmtp:111 stereo=1; sprop-stereo=1; ") // Force stereo Opus
+        .replace(/a=sendonly/g, "a=sendonly"); // Caller only sends media
+}
+
 // 📡 Create and Store SDP Offer
 // The following version seemed to initially create a short offer which might have been incomplete
 //async function createOffer() {
