@@ -156,6 +156,12 @@ async function checkClientStats() {
         }
     });
 
+    for (const stat of stats.values()) {
+      Object.keys(stat).forEach((statName) => {
+        console.log(`${statName}: ${report[statName]}`);
+      });
+    }
+
     setTimeout(checkClientStats, 5000); // Check every 5 seconds
 }
 
