@@ -2,42 +2,24 @@ let peerConnection = new RTCPeerConnection({
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 });
 
-// Configure sender for mono 48kHz Opus
-const audioConstraints = {
-    audio: {
-        sampleRate: 48000,
-        channelCount: 1,
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false
-    }
-};
-
-navigator.mediaDevices.getUserMedia(audioConstraints).then(stream => {
-    stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-    console.log("🎙 Caller configured to send mono Opus 48kHz");
-}).catch(error => console.error("🎙 Error getting user media:", error));
-
 peerConnection.onicecandidate = event => {
     if (event.candidate) {
-        localStorage.setItem("iceCandidate", JSON.stringify(event.candidate));
+        console.log("📡 ICE Candidate:", event.candidate.candidate);
     }
 };
 
-// 📡 Watch for SDP Answer from Receiver
-window.addEventListener("storage", (event) => {
-    if (event.key === "sdpAnswer" && event.newValue) {
-        let answer = JSON.parse(event.newValue);
-        peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-        console.log("✅ SDP Answer Set!");
+// 🎧 Detect when Streaming Starts
+peerConnection.oniceconnectionstatechange = () => {
+    console.log("🔄 ICE Connection State:", peerConnection.iceConnectionState);
+    if (peerConnection.iceConnectionState === "connected") {
+        console.log("✅ Streaming has started! WebRTC connection established.");
     }
+};
 
-    if (event.key === "iceCandidateReceiver" && event.newValue) {
-        let candidate = JSON.parse(event.newValue);
-        peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-        console.log("📡 ICE Candidate Added from Receiver.");
-    }
-});
+// 🎙 Detect when Stream is Successfully Sent
+peerConnection.onnegotiationneeded = async () => {
+    console.log("🔄 Negotiation needed. Updating SDP...");
+};
 
 // 📡 Modify SDP to Force Opus & Dual Mono
 function forceOpusSDP(sdp) {
@@ -45,7 +27,7 @@ function forceOpusSDP(sdp) {
     return sdp
         .replace(/a=rtpmap:\d+ opus\/\d+/g, "a=rtpmap:111 opus/48000") // Force Opus codec
         .replace(/a=fmtp:\d+ /g, "a=fmtp:111 stereo=1; sprop-stereo=1; ") // Force stereo Opus
-        .replace(/a=sendonly/g, "a=sendonly"); // Caller only sends media
+        .replace(/a=sendrecv/g, "a=sendonly"); // Caller only sends media
 }
 
 // 📡 Create and Store SDP Offer
@@ -100,5 +82,24 @@ async function createOffer() {
     console.log("📡 SDP Offer Created:", JSON.stringify(offer));
 }
 
-// Bind buttons for UI control
-document.querySelector("#createOfferButton").addEventListener("click", createOffer);
+// 📥 Accepts Receiver's Answer (Pasted from Receiver)
+async function setAnswer() {
+    let answer = JSON.parse(document.getElementById("answer").value);
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    console.log("✅ SDP Answer Set!");
+}
+
+// 📡 Start WebRTC & Add Stream
+function startWebRTC(stream) {
+    stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+
+    console.log("startWebRTC Channels:", stream.getAudioTracks()[0].getSettings().channelCount);
+
+    // ✅ Only create an offer if there's no existing one
+    if (!peerConnection.localDescription) {
+        console.log("📡 Creating initial SDP offer...");
+        createOffer();
+    } else {
+        console.log("✅ WebRTC already established. Streaming media...");
+    }
+}
