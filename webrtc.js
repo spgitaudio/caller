@@ -115,4 +115,14 @@ function checkConnectionStatus() {
     console.log("🔄 ICE Connection State:", peerConnection.iceConnectionState);
     console.log("🔄 Signaling State:", peerConnection.signalingState);
     console.log("🔄 Connection State:", peerConnection.connectionState);
+
+    // ✅ Check if Media is Actively Sending
+    let senders = peerConnection.getSenders();
+    let isStreaming = senders.some(sender => sender.track && sender.track.readyState === "live");
+
+    if (isStreaming) {
+        console.log("📡 ✅ Audio is actively streaming from Client to Server!");
+    } else {
+        console.log("📡 ❌ No active audio stream detected from Client.");
+    }
 }
