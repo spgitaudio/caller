@@ -116,12 +116,30 @@ function checkConnectionStatus() {
     console.log("🔄 Signaling State:", peerConnection.signalingState);
     console.log("🔄 Connection State:", peerConnection.connectionState);
 
-    // ✅ Check if Media is Actively Sending
     let senders = peerConnection.getSenders();
     let isStreaming = senders.some(sender => sender.track && sender.track.readyState === "live");
 
+    senders.forEach(sender => {
+        if (sender.track) {
+            console.log(`🎤 Sender Track: ID=${sender.track.id}, ReadyState=${sender.track.readyState}, Muted=${sender.track.muted}`);
+        }
+    });
+
     if (isStreaming) {
-        console.log("📡 ✅ Audio is actively streaming from Client to Server!");
+        console.log("📡 ✅ Audio track is added, but is it actually streaming?");
+        senders.forEach(sender => {
+            if (sender.track) {
+                console.log(`🔍 Track ID: ${sender.track.id}, Enabled: ${sender.track.enabled}, Muted: ${sender.track.muted}, ReadyState: ${sender.track.readyState}`);
+            }
+        });
+
+        // ✅ Check if track is producing actual audio
+        let audioTrack = senders.find(sender => sender.track && sender.track.kind === "audio");
+        if (audioTrack && audioTrack.track.muted === false) {
+            console.log("📡 ✅ Audio is ACTUALLY streaming from Client to Server!");
+        } else {
+            console.log("📡 ❌ Audio track exists but is not sending actual samples yet.");
+        }
     } else {
         console.log("📡 ❌ No active audio stream detected from Client.");
     }
