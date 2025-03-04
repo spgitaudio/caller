@@ -146,6 +146,49 @@ function checkConnectionStatus() {
     }
 }
 
+// Before creating an offer, ensure that the track is added to the connection.
+// Expected Console Output:  Audio Track Found: ID=xyz456, ReadyState=live, Muted=false
+//  If You See: No audio track attached to WebRTC! --> Then WebRTC is not sending audio because no track was added
+async function checkClientTracks() {
+    if (!peerConnection) {
+        console.error("❌ WebRTC connection is not initialized.");
+        return;
+    }
+
+    console.log("🎙 Checking if audio track is properly attached to WebRTC...");
+
+    let senders = peerConnection.getSenders();
+    let audioTrack = senders.find(sender => sender.track && sender.track.kind === "audio");
+
+    if (audioTrack) {
+        console.log(`🎤 Audio Track Found: ID=${audioTrack.track.id}, ReadyState=${audioTrack.track.readyState}, Muted=${audioTrack.track.muted}`);
+    } else {
+        console.error("❌ No audio track attached to WebRTC!");
+    }
+}
+
+// ✅ Run this check after "Create Offer"
+setTimeout(checkClientTracks, 3000);
+
+//Check If WebRTC Is Muting the Track
+//Modify the code to manually unmute the track before streaming.
+async function ensureTrackIsUnmuted() {
+    let senders = peerConnection.getSenders();
+    let audioTrack = senders.find(sender => sender.track && sender.track.kind === "audio");
+
+    if (audioTrack) {
+        console.log(`🎤 Checking track before streaming: ID=${audioTrack.track.id}, Muted=${audioTrack.track.muted}`);
+
+        // ✅ Force-enable the track
+        audioTrack.track.enabled = true;
+        audioTrack.track.muted = false;
+    }
+}
+
+// ✅ Run this before starting streaming
+setTimeout(ensureTrackIsUnmuted, 2000);
+
+
 async function checkClientStats() {
     if (!peerConnection) return;
 
@@ -156,10 +199,10 @@ async function checkClientStats() {
         }
     });
 
-    stats.forEach(report => {
-        console.log(`report.type: ${report.type}`);
-        console.log(`report.kind: ${report.kind}`);
-    });
+//    stats.forEach(report => {
+//        console.log(`report.type: ${report.type}`);
+//        console.log(`report.kind: ${report.kind}`);
+//    });
 
     setTimeout(checkClientStats, 5000); // Check every 5 seconds
 }
