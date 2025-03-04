@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC Client</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            display: flex;
+            flex-direction: column;
+        }
+        .main-container {
+            display: flex;
+            gap: 20px;
+        }
+        .controls, .logs {
+            flex: 1;
+        }
+        #consoleLog {
+            height: 300px;
+            border: 1px solid #ccc;
+            overflow-y: scroll;
+            white-space: pre-wrap;
+            font-family: monospace;
+            padding: 10px;
+            background-color: #f4f4f4;
+        }
+        button { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="controls">
+            <h1>WebRTC Client</h1>
+            
+            <input type="file" id="wavFile" accept=".wav">
+            
+            <div>
+                <button id="createOfferBtn">Create Offer</button>
+                <textarea id="offerText" rows="10" cols="50" placeholder="Generated Offer SDP"></textarea>
+            </div>
+            
+            <div>
+                <button id="setAnswerBtn">Set Answer</button>
+                <textarea id="answerText" rows="10" cols="50" placeholder="Paste Server Answer SDP"></textarea>
+            </div>
+            
+            <div>
+                <button id="streamPlayBtn">Stream + Play TTS</button>
+            </div>
+        </div>
+        
+        <div class="logs">
+            <h2>Console Log</h2>
+            <div id="consoleLog"></div>
+        </div>
+    </div>
+
+    <script>
+        // Custom logging function
+        const consoleLog = (message, type = 'info') => {
+            const logElement = document.getElementById('consoleLog');
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${type.toUpperCase()}] ${new Date().toLocaleTimeString()} - ${message}`;
+            
+            // Add type-based styling
+            switch(type) {
+                case 'error': logEntry.style.color = 'red'; break;
+                case 'warn': logEntry.style.color = 'orange'; break;
+                case 'success': logEntry.style.color = 'green'; break;
+                case 'connection': logEntry.style.color = 'blue'; break;
+            }
+            
+            // Add new log entry
+            logElement.appendChild(logEntry);
+            
+            // Keep only last 10 log entries
+            if (logElement.children.length > 10) {
+                logElement.removeChild(logElement.firstChild);
+            }
+            
+            // Auto-scroll to bottom
+            logElement.scrollTop = logElement.scrollHeight;
+        };
+
+        let peerConnection;
+        let audioContext;
+        let wavBuffer;
+        let micStream;
+        let rtpStatsInterval;
+
+        // Initialize WebRTC Peer Connection
+        function initPeerConnection() {
+            const configuration = {
+                iceServers: [],  // No STUN/TURN servers for local connection
+                sdpSemantics: 'unified-plan'
+            };
+            peerConnection = new RTCPeerConnection(configuration);
+
+            // Detailed connection state tracking
+            peerConnection.onconnectionstatechange = (event) => {
+                consoleLog(`Connection State: ${peerConnection.connectionState}`, 'connection');
+            };
+
+            peerConnection.oniceconnectionstatechange = (event) => {
+                consoleLog(`ICE Connection State: ${peerConnection.iceConnectionState}`, 'connection');
+            };
+
+            peerConnection.onicegatheringstatechange = (event) => {
+                consoleLog(`ICE Gathering State: ${peerConnection.iceGatheringState}`, 'connection');
+            };
+
+            peerConnection.onsignalingstatechange = (event) => {
+                consoleLog(`Signaling State: ${peerConnection.signalingState}`, 'connection');
+            };
+
+            // Disable built-in audio processing
+            const offerOptions = {
+                offerToReceiveAudio: true,
+                voiceActivityDetection: false
+            };
+
+            // Create data channel for signaling
+            const dataChannel = peerConnection.createDataChannel('audio-channel');
+            
+            dataChannel.onopen = () => consoleLog('Data channel opened', 'success');
+            dataChannel.onclose = () => consoleLog('Data channel closed', 'warn');
+
+            return { peerConnection, offerOptions, dataChannel };
+        }
+
+        // Detailed RTP Stats Tracking
+        function startRtpStatsTracking() {
+            // Clear any existing interval
+            if (rtpStatsInterval) {
+                clearInterval(rtpStatsInterval);
+            }
+
+            rtpStatsInterval = setInterval(async () => {
+                if (!peerConnection) return;
+
+                const senders = peerConnection.getSenders();
+                for (const sender of senders) {
+                    if (sender.track) {
+                        try {
+                            const stats = await sender.getStats();
+                            stats.forEach(stat => {
+                                if (stat.type === 'outbound-rtp') {
+                                    consoleLog(`RTP Sender Stats:
+- Packets Sent: ${stat.packetsSent}
+- Bytes Sent: ${stat.bytesSent}
+- Timestamp: ${stat.timestamp}
+- Codec: ${stat.mimeType}`, 'info');
+                                }
+                            });
+                        } catch (error) {
+                            consoleLog(`RTP Stats Error: ${error.message}`, 'error');
+                        }
+                    }
+                }
+            }, 5000);
+        }
+
+        // Load WAV file
+        document.getElementById('wavFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+            audioContext = new AudioContext();
+            wavBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            consoleLog(`WAV file loaded: ${file.name}`, 'success');
+        });
+
+        // Capture Microphone
+        async function captureMicrophone() {
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        autoGainControl: false,
+                        noiseSuppression: false
+                    } 
+                });
+                consoleLog('Microphone captured successfully', 'success');
+            } catch (error) {
+                consoleLog(`Microphone capture error: ${error.message}`, 'error');
+            }
+        }
+
+        // Create stereo stream for transmission
+        function createStereoStream() {
+            if (!audioContext || !wavBuffer || !micStream) {
+                consoleLog('Please load WAV file and capture microphone first', 'warn');
+                return null;
+            }
+
+            const micSource = audioContext.createMediaStreamSource(micStream);
+            const ttsSource = audioContext.createBufferSource();
+            ttsSource.buffer = wavBuffer;
+
+            const stereoDestination = audioContext.createMediaStreamDestination();
+            
+            // Create a stereo merger
+            const merger = audioContext.createChannelMerger(2);
+            
+            // Route TTS to left channel
+            const ttsGain = audioContext.createGain();
+            ttsSource.connect(ttsGain);
+            ttsGain.connect(merger, 0, 0);
+            
+            // Route mic to right channel
+            const micGain = audioContext.createGain();
+            micSource.connect(micGain);
+            micGain.connect(merger, 0, 1);
+
+            merger.connect(stereoDestination);
+            ttsSource.start();
+
+            return stereoDestination.stream;
+        }
+
+        // Stream and Play Button Logic
+        document.getElementById('streamPlayBtn').addEventListener('click', async () => {
+            try {
+                await captureMicrophone();
+                const stereoStream = createStereoStream();
+                
+                if (stereoStream) {
+                    // Play TTS locally
+                    const audioElement = new Audio();
+                    audioElement.srcObject = stereoStream;
+                    audioElement.play();
+
+                    // Initialize peer connection if not already done
+                    if (!peerConnection) {
+                        initPeerConnection();
+                    }
+
+                    // Add stereo stream to peer connection
+                    stereoStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, stereoStream);
+                    });
+
+                    // Start RTP stats tracking
+                    startRtpStatsTracking();
+
+                    consoleLog('Stereo stream created and added to peer connection', 'success');
+                }
+            } catch (error) {
+                consoleLog(`Stream + Play error: ${error.message}`, 'error');
+            }
+        });
+
+        // Create Offer Button
+        document.getElementById('createOfferBtn').addEventListener('click', async () => {
+            try {
+                const { peerConnection, offerOptions } = initPeerConnection();
+                
+                const offer = await peerConnection.createOffer(offerOptions);
+                await peerConnection.setLocalDescription(offer);
+                
+                document.getElementById('offerText').value = offer.sdp;
+                consoleLog('Offer created successfully', 'success');
+            } catch (error) {
+                consoleLog(`Offer creation error: ${error.message}`, 'error');
+            }
+        });
+
+        // Set Answer Button
+        document.getElementById('setAnswerBtn').addEventListener('click', async () => {
+            try {
+                const answerSdp = document.getElementById('answerText').value;
+                const answer = new RTCSessionDescription({ type: 'answer', sdp: answerSdp });
+                
+                await peerConnection.setRemoteDescription(answer);
+                consoleLog('Answer set successfully', 'success');
+            } catch (error) {
+                consoleLog(`Set answer error: ${error.message}`, 'error');
+            }
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (rtpStatsInterval) {
+                clearInterval(rtpStatsInterval);
+            }
+            if (peerConnection) {
+                peerConnection.close();
+            }
+        });
+    </script>
+</body>
+</html>
